@@ -38,7 +38,7 @@ module ZipFile
 import Base: read, read!, eof, write, flush, close, mtime, position, show, unsafe_write
 using Printf
 
-export read, read!, eof, write, close, mtime, position, show
+export read, read!, eof, write, close, mtime, position, show, unzip
 
 include("Zlib.jl")
 import .Zlib
@@ -674,6 +674,21 @@ function unsafe_write(f::WritableFile, p::Ptr{UInt8}, nb::UInt)
     f.crc32 = Zlib.crc32(unsafe_wrap(Array, p, nb), f.crc32)
     f.uncompressedsize += n
     n
+end
+
+# Unzip all contents of a Reader into directory outPath.
+function unzip(zarchive::Reader, outPath)
+    ispath(outPath) && throw(ArgumentError("Output path '$outPath' already in use"))
+    mkdir(outPath)
+    for f in zarchive.files
+        fullFilePath = joinpath(outPath,f.name)
+        if (endswith(f.name,"/") || endswith(f.name,"\\"))
+            mkdir(fullFilePath)
+        else
+            write(fullFilePath, read(f))
+        end
+    end
+    return
 end
 
 end # module
